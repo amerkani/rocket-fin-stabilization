@@ -19,6 +19,6 @@ xdot = [
     3*0.5*C_l*rho*x(5)^2*S*d_l/I;
     x(4);
     0;
-    x(5) - 0.5*C_d*rho*x(5)^2*A/m;
+    -0.5*C_d*rho*x(5)^2*A/m;
 ];
 end
