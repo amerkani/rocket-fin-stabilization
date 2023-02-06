@@ -16,7 +16,7 @@ C_d = C_d_fit(0)*x(3)^2 + C_d_fit(2)*x(3) + C_d_fit(3);
 
 xdot = [
     x(2);
-    3*0.5*C_l*rho*x(5)^2*S/I;
+    3*0.5*C_l*rho*x(5)^2*S*d_l/I;
     x(4);
     0;
     x(5) - 0.5*C_d*rho*x(5)^2*A/m;
