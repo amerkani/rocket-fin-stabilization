@@ -1,0 +1,5 @@
+function [xdot] = stabilize(t, x)
+    K = [.4721 5.1898];
+    u = -K*x;
+    xdot = 
+end
