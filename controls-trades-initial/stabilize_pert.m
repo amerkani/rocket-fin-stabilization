@@ -1,4 +1,4 @@
-function [xdot] = stabilize(t, x, u0, uf, timespan, dT)
+function [xdot] = stabilize(t, x, u_path, dT, rate)
     Ix = .1;                 % rotational moment of inertia
     Iy = 1e6;                 % rotational moment of inertia
     Iz = 1e6;                 % rotational moment of inertia
@@ -19,8 +19,14 @@ function [xdot] = stabilize(t, x, u0, uf, timespan, dT)
 %         u = (abs(u)/u)*15;
 %     end
     ti = timespan(1);
-    tf = timespan(end);
-    u = u0 + ((t-ti)/(tf-ti))*uf;
+    tf = timespan(end);    
+    dir = abs(uf)/uf;
+
+    u = u0 + (t-ti)*dir*rate;
+    if abs(u) > abs(uf)
+        u = uf;
+    end
+
 %     tau_pert = .5*rho*v^2*C_l_prime*20*sin(t/dT)*(S/2)*d_l*(1/Ix);
     tau_pert = .5*rho*v^2*C_l_prime*20*(S/2)*d_l*(1/Ix);
     tau_pert = 0;

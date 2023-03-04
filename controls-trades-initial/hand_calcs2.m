@@ -88,7 +88,7 @@ plot(T, X(:,2))
 
 %% Discrete Time Updates
 
-dT = .05;           % Sample rate (control loop time)
+dT = .04;           % Sample rate (control loop time)
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
 rate = 90; % deg/s (servo)
 
@@ -98,25 +98,32 @@ ti = 0; tf = ti + dT; Traj = [];
 % P = 1/s^2/(s+5); [A,B,C,D]=ssdata(P);
 for k=1:1:5/dT
 
-    u0 = u;
+    u0 = uf;
     u = -Kd*xp;
     if abs(u) > 15
         u = (abs(u)/u)*15;
     end
-    dir = abs(u)/u;
+    dir = abs(u-u0)/(u-u0);
 
     timespan = [ti:dT/10:tf]';
     u_path = u0 + (timespan-ti)*dir*rate;
     for i=1:size(u_path)
-        if abs(u_path(i)) > abs(u)
-            u_path(i) = u;
+        if dir < 0
+            if u_path(i) < u
+                u_path(i) = u;
+            end
+        elseif dir > 0
+            if u_path(i) > u
+                u_path(i) = u;
+            end
         end
     end
-%     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u*ones(size(timespan)),timespan,xp);
-    [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, u, timespan, dT), timespan, xp);
+    [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u_path,timespan,xp);
+%     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
     xp = Xout(end,:)';
-    Traj = [Traj; Tout(:), Xout,u_path];
+    Traj = [Traj; Tout(:), Xout, u_path];
     
+    uf = u_path(end);
     ti = tf;
     tf = ti+dT;
 
