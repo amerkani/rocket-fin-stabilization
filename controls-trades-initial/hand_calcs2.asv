@@ -70,7 +70,7 @@ B = [
 C = [1 1];
 D = 0;
 
-q1 = 20;
+q1 = 50;
 r1 = 1;
 
 Q = C'*q1*C
@@ -89,26 +89,27 @@ plot(T, X(:,2))
 %% Discrete Time Updates
 
 dT = .04;           % Sample rate (control loop time)
-[Ad,Bd,Cd,Dd]=ssdata(c2d(ss(A,B,C,D),dT));
-Kd = lqr(Ad,Bd,Q,R);
+[Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
+rate = 180; % deg/s (servo)
 
-xp = [0; 6]; xc = xp; r = 0;
+u=0;
+xp = [0; 1]; xc = [0;0]; r = 0;
 ti = 0; tf = ti + dT; Traj = [];
 % P = 1/s^2/(s+5); [A,B,C,D]=ssdata(P);
 for k=1:1:5/dT
 
-    u = Kd*xc;
+    u0 = u;
+    u = -Kd*xp;
     if abs(u) > 15
         u = (abs(u)/u)*15;
     end
 
     timespan = [ti:dT/10:tf]';
-    [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u*ones(size(timespan)),timespan,xp);
-
+    u_path = u0 + ((timespan-ti)/(tf-ti))*u;
+%     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u*ones(size(timespan)),timespan,xp);
+    [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, u, timespan, dT), timespan, xp);
     xp = Xout(end,:)';
-    Traj = [Traj; Tout(:), Xout,Yout(:),u*ones(size(timespan))];
-
-    xc = Ad*xp + B*u;
+    Traj = [Traj; Tout(:), Xout,u_path];
     
     ti = tf;
     tf = ti+dT;
@@ -116,13 +117,68 @@ for k=1:1:5/dT
 end
 
 figure
-plot(flip(Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--','linewidth',3);
+plot((Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--','linewidth',3);
 set(gca,'fontsize', 16);
 xlabel('Time (s)');
 legend('y', 'r');
 
 figure
-plot(flip(Traj(:,1)), Traj(:,6), 'b', 'linewidth',3);
+plot((Traj(:,1)), Traj(:,4), 'b', 'linewidth',3);
+set(gca,'fontsize', 16);
+xlabel('Time (s)');
+legend('u');
+
+%% Discrete Time Updates - Adding LQE
+
+dT = .04;           % Sample rate (control loop time)
+[Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
+
+G=eye(2,2);
+Qe=diag([0 .1]);
+Re=.1;
+L=lqed(A,G,C,Qe,Re, dT);
+
+F=inv(C*inv(-(A-B*Kd))*B);
+
+u=0;
+x = [[0; 5]; [0; 0]]; xc = [0;0]; r = 1;
+ti = 0; tf = ti + dT; Traj = [];
+% P = 1/s^2/(s+5); [A,B,C,D]=ssdata(P);
+for k=1:1:5/dT
+
+    xp=x(1:2);
+    xe=x(3:4);
+    x
+    xp
+    y=C*xp;
+    ye=C*xe;
+
+    u0 = u;
+    u=F*r-Kd*xe;
+    if abs(u) > 15
+        u = (abs(u)/u)*15;
+    end
+
+    timespan = [ti:dT/10:tf]';
+    u_path = u0 + ((timespan-ti)/(tf-ti))*u;
+%     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u*ones(size(timespan)),timespan,xp);
+    [Tout, Xout] = ode45(@(t,x) stabilize_pert_lqe(t,x, u0, u, timespan, dT, y, ye, L), timespan, x);
+    x = Xout(end,:)'
+    Traj = [Traj; Tout(:), Xout,u_path];
+    
+    ti = tf;
+    tf = ti+dT;
+
+end
+
+figure
+plot((Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--','linewidth',3);
+set(gca,'fontsize', 16);
+xlabel('Time (s)');
+legend('y', 'r');
+
+figure
+plot((Traj(:,1)), Traj(:,4), 'b', 'linewidth',3);
 set(gca,'fontsize', 16);
 xlabel('Time (s)');
 legend('u');
