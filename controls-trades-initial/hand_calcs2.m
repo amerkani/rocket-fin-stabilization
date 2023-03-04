@@ -88,9 +88,9 @@ plot(T, X(:,2))
 
 %% Discrete Time Updates
 
-dT = .04;           % Sample rate (control loop time)
+dT = .05;           % Sample rate (control loop time)
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
-rate = 180; % deg/s (servo)
+rate = 90; % deg/s (servo)
 
 u=0;
 xp = [0; 1]; xc = [0;0]; r = 0;
@@ -103,9 +103,15 @@ for k=1:1:5/dT
     if abs(u) > 15
         u = (abs(u)/u)*15;
     end
+    dir = abs(u)/u;
 
     timespan = [ti:dT/10:tf]';
-    u_path = u0 + ((timespan-ti)/(tf-ti))*u;
+    u_path = u0 + (timespan-ti)*dir*rate;
+    for i=1:size(u_path)
+        if abs(u_path(i)) > abs(u)
+            u_path(i) = u;
+        end
+    end
 %     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u*ones(size(timespan)),timespan,xp);
     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, u, timespan, dT), timespan, xp);
     xp = Xout(end,:)';
