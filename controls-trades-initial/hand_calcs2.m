@@ -27,7 +27,7 @@ B = [
     0;
     0;
 ];
-C = [1 0 0];
+C = [1 1 1];
 D = 0;
 q1 = 5;
 r1 = 1;
@@ -70,7 +70,7 @@ B = [
 C = [1 1];
 D = 0;
 
-q1 = 50;
+q1 = 5;
 r1 = 1;
 
 Q = C'*q1*C
@@ -88,12 +88,13 @@ plot(T, X(:,2))
 
 %% Discrete Time Updates
 
-dT = .04;           % Sample rate (control loop time)
+dT = .004;           % Sample rate (control loop time)
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
-rate = 90; % deg/s (servo)
+rate = 135; % deg/s (servo)
 
 u=0;
-xp = [0; 1]; xc = [0;0]; r = 0;
+uf=0;
+xp = [0; 5]; xc = [0;0]; r = 0;
 ti = 0; tf = ti + dT; Traj = [];
 % P = 1/s^2/(s+5); [A,B,C,D]=ssdata(P);
 for k=1:1:5/dT
@@ -106,6 +107,7 @@ for k=1:1:5/dT
     dir = abs(u-u0)/(u-u0);
 
     timespan = [ti:dT/10:tf]';
+    tau = ones(size(timespan))*4;
     u_path = u0 + (timespan-ti)*dir*rate;
     for i=1:size(u_path)
         if dir < 0
@@ -118,6 +120,8 @@ for k=1:1:5/dT
             end
         end
     end
+    tau = 0;
+    u_path = u_path + tau;
     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),u_path,timespan,xp);
 %     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
     xp = Xout(end,:)';
