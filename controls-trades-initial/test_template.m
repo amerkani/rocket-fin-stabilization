@@ -79,6 +79,9 @@ function test_template()
 
         % Calculate desired servo value
         u = -Kd*xp;
+        if abs(u) > 15
+            u = (abs(u)/u)*15;
+        end
         cmd = (90+u)/180;
 
         % Set servo angles
