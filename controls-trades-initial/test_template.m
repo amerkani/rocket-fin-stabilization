@@ -94,7 +94,9 @@ function test_template()
 
         end_time = toc;
         % Pause for the remaining time to enforce control loop frequency
-        pause(dT - (end_time-start_time));
+        if dT - (end_time-start_time) > 0
+            pause(dT - (end_time-start_time));
+        end
     end
     
 end

@@ -70,7 +70,7 @@ B = [
 C = [1 1];
 D = 0;
 
-q1 = 5;
+q1 = 5; % change this for parameters
 r1 = 1;
 
 Q = C'*q1*C
