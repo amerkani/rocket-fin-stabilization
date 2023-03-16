@@ -11,7 +11,11 @@ m = 10;                 % mass of the rocket in kg
 C_l_prime = .01;        % slope of cl vs alpha curve
 C_d_fit = [1.294e-4 1.0734e-5 6.972e-3];% quadratic fit coefficients for C_d vs alpha
 rho = 1.17;             % density in kg/m^3
+<<<<<<< HEAD
 S = .01;               % wing area in m^2
+=======
+S = .007;               % wing area in m^2
+>>>>>>> cc19a31 (adding simulation plots with noise)
 area = .0001;              % wing cross-sectional area
 d_l = 0.15;             % distance from roll axis to aerodynamic center
 
@@ -40,9 +44,15 @@ sys1 = ss(A-B*K, B, C, D);
 % step(sys1)
 
 x0 = [0 20]';
+<<<<<<< HEAD
 [T,X] = ode45(@stabilize, 0:.001:4, x0);
 
 plot(T, X(:,2))
+=======
+% [T,X] = ode45(@stabilize, 0:.001:4, x0);
+
+% plot(T, X(:,2))
+>>>>>>> cc19a31 (adding simulation plots with noise)
 
 % ideal continuous 
 
@@ -57,10 +67,17 @@ rate = 135; % deg/s (servo)
 tauVecLength = totalT / dT * (stepsPerdt +1);
 time = linspace(0,totalT,tauVecLength);
 
+<<<<<<< HEAD
 tauConst = ones(tauVecLength,1) ;
 tauPeriodic = 2 * sin(time) + 1;
 seedPseudo = randi([2000,4000],1,30)
 tauPseudoRand = []
+=======
+tauConst = 6*ones(tauVecLength,1) ;
+tauPeriodic = 2 * sin(time) + 1;
+seedPseudo = randi([2000,4000],1,30);
+tauPseudoRand = [];
+>>>>>>> cc19a31 (adding simulation plots with noise)
 for i = 1:1:length(seedPseudo)
     if mod(i,2) == 0
         tauPseudoRand = [tauPseudoRand, zeros(1,seedPseudo(i))];
@@ -69,7 +86,11 @@ for i = 1:1:length(seedPseudo)
     end
 end
     
+<<<<<<< HEAD
 tau = reshape(tauPseudoRand(1:tauVecLength), [(stepsPerdt +1), totalT/dT]);
+=======
+tau = reshape(tauConst(1:tauVecLength), [(stepsPerdt +1), totalT/dT]);
+>>>>>>> cc19a31 (adding simulation plots with noise)
 
 u=0;
 uf=0;
@@ -114,7 +135,11 @@ for k=1:1:totalT/dT
     %u_path = u_path +1;
     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),pertPath,timespan,xp);
 %     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
+<<<<<<< HEAD
     xp = Xout(end,:)';
+=======
+    xp = Xout(end,:)' + [.005*randn; .01*randn];
+>>>>>>> cc19a31 (adding simulation plots with noise)
     Traj = [Traj; Tout(:), Xout, u_path];
     
     uf = u_path(end);
