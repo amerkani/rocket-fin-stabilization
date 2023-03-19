@@ -15,6 +15,9 @@ S = .007;               % wing area in m^2
 area = .0001;              % wing cross-sectional area
 d_l = 0.15;             % distance from roll axis to aerodynamic center
 
+angle_noise = 0.003;
+rate_noise = .06;
+
 v = 70;                 % Air Speed (m/s)
 
 A = [
@@ -28,7 +31,7 @@ B = [
 C = [1 1];
 D = 0;
 
-q1 = 5; % change this for parameters
+q1 = 20; % change this for parameters
 r1 = 1;
 
 Q = C'*q1*C
@@ -54,18 +57,18 @@ stepsPerdt = 10;
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
 rate = 135; % deg/s (servo)
 %tau = ones(size(timespan))*4;
-tauVecLength = totalT / dT * (stepsPerdt +1);
+tauVecLength = totalT / dT * (stepsPerdt + 1);
 time = linspace(0,totalT,tauVecLength);
 
-tauConst = 6*ones(tauVecLength,1) ;
-tauPeriodic = 2 * sin(time) + 1;
+tauConst = 10*ones(tauVecLength,1) ;
+tauPeriodic = 10 * sin(time) + 1;
 seedPseudo = randi([2000,4000],1,30);
 tauPseudoRand = [];
 for i = 1:1:length(seedPseudo)
     if mod(i,2) == 0
         tauPseudoRand = [tauPseudoRand, zeros(1,seedPseudo(i))];
     else
-        tauPseudoRand = [tauPseudoRand, ones(1,seedPseudo(i))*2];
+        tauPseudoRand = [tauPseudoRand, ones(1,seedPseudo(i))*10];
     end
 end
     
@@ -114,7 +117,7 @@ for k=1:1:totalT/dT
     %u_path = u_path +1;
     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),pertPath,timespan,xp);
 %     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
-    xp = Xout(end,:)' + [.005*randn; .01*randn];
+    xp = Xout(end,:)' + [angle_noise*randn; rate_noise*randn];
     Traj = [Traj; Tout(:), Xout, u_path];
     
     uf = u_path(end);
@@ -130,7 +133,7 @@ title('Pseudo Random: Angular Velocity')
 xlabel('Time (s)');
 ylabel('rad/sec')
 legend('y', 'r');
-%no tau = no control
+%no tau = no control 
 %contr
 figure
 plot((Traj(:,1)), Traj(:,4), 'b', 'linewidth',3);
@@ -139,3 +142,6 @@ title('Pseudo Random: Controls')
 xlabel('Time (s)');
 ylabel('deg')
 legend('u');
+
+%% Functions
+function [state_filt] = lp_filter(inpuit, alpha)
