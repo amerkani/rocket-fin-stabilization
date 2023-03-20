@@ -37,7 +37,7 @@ r1 = 1;
 Q = C'*q1*C
 R = r1;
 
-K = lqr(A, B, Q, R)
+K = lqr(A, B, Q, R);
 
 sys1 = ss(A-B*K, B, C, D);
 % step(sys1)
@@ -56,6 +56,18 @@ totalT = 20; %secs
 stepsPerdt = 10;
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
 rate = 135; % deg/s (servo)
+
+% Kalman
+plant = ss(A,B,C,D,dT);
+Qk = 0;
+Rk = [
+    angle_noise*10 0;
+    0 rate_noise;
+];
+Rk = rate_noise;
+[kalmf,L,~,Mx,Z] = kalman(plant,Qk,Rk);
+
+
 %tau = ones(size(timespan))*4;
 tauVecLength = totalT / dT * (stepsPerdt + 1);
 time = linspace(0,totalT,tauVecLength);
@@ -144,4 +156,3 @@ ylabel('deg')
 legend('u');
 
 %% Functions
-function [state_filt] = lp_filter(inpuit, alpha)
