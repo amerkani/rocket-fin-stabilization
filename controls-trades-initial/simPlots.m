@@ -28,18 +28,19 @@ B = [
     0;
     1.5*rho*v^2*C_l_prime*S*d_l*(1/Ix)
 ];
-C = [1 1];
+C = [1 0; 0 1];
 D = 0;
 
-q1 = 20; % change this for parameters
+q1 = 200; % change this for parameters
 r1 = 1;
 
 Q = C'*q1*C
 R = r1;
 
-K = lqr(A, B, Q, R);
 
-sys1 = ss(A-B*K, B, C, D);
+% K = lqr(A, B, Q, R);
+
+% sys1 = ss(A-B*K, B, C, D);
 % step(sys1)
 
 x0 = [0 20]';
@@ -54,42 +55,45 @@ x0 = [0 20]';
 dT = .004;           % Sample rate (control loop time)
 totalT = 20; %secs
 stepsPerdt = 10;
-[Kd, Sd, ed] = lqrd(A,B,Q,R, dT);
+[Kd, Sd, ed] = lqrd(A,B,Q,R, dT)
 rate = 135; % deg/s (servo)
 
 % Kalman
-plant = ss(A,B,C,D,dT);
-Qk = 0;
-Rk = [
-    angle_noise*10 0;
-    0 rate_noise;
-];
-Rk = rate_noise;
-[kalmf,L,~,Mx,Z] = kalman(plant,Qk,Rk);
+% plant = ss(A,B,C,D,dT);
+% Qk = 0;
+% Rk = [
+%     angle_noise*10 0;
+%     0 rate_noise;
+% ];
+% Rk = rate_noise;
+% [kalmf,L,~,Mx,Z] = kalman(plant,Qk,Rk);
 
 
 %tau = ones(size(timespan))*4;
 tauVecLength = totalT / dT * (stepsPerdt + 1);
 time = linspace(0,totalT,tauVecLength);
 
-tauConst = 10*ones(tauVecLength,1) ;
-tauPeriodic = 10 * sin(time) + 1;
+tauConst = 5*ones(tauVecLength,1) ;
+tauPeriodic = 5 * sin(time) + 1;
 seedPseudo = randi([2000,4000],1,30);
 tauPseudoRand = [];
 for i = 1:1:length(seedPseudo)
     if mod(i,2) == 0
         tauPseudoRand = [tauPseudoRand, zeros(1,seedPseudo(i))];
     else
-        tauPseudoRand = [tauPseudoRand, ones(1,seedPseudo(i))*10];
+        tauPseudoRand = [tauPseudoRand, ones(1,seedPseudo(i))*5];
     end
 end
+
+tauChoice = tauPeriodic(1:tauVecLength);
     
-tau = reshape(tauConst(1:tauVecLength), [(stepsPerdt +1), totalT/dT]);
+tau = reshape(tauChoice, [(stepsPerdt +1), totalT/dT]);
 
 u=0;
 uf=0;
 xp = [0; 0]; xc = [0;0]; r = 0;
 ti = 0; tf = ti + dT; Traj = [];
+x_true = xp;
 % P = 1/s^2/(s+5); [A,B,C,D]=ssdata(P);
 for k=1:1:totalT/dT
 
@@ -127,28 +131,38 @@ for k=1:1:totalT/dT
     % change tau -move periodically 
     pertPath = u_path + tau(:,k);
     %u_path = u_path +1;
-    [Yout, Tout, Xout]=lsim(ss(A,B,C,D),pertPath,timespan,xp);
+    [Yout, Tout, Xout]=lsim(ss(A,B,C,D),pertPath,timespan,x_true);
 %     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
     xp = Xout(end,:)' + [angle_noise*randn; rate_noise*randn];
-    Traj = [Traj; Tout(:), Xout, u_path];
+    Traj = [Traj; Tout(:), Xout, xp'.*ones(size(Xout)), u_path];
     
     uf = u_path(end);
     ti = tf;
     tf = ti+dT;
+    x_true = Xout(end,:)';
 
 end
 %ang vel
 figure
-plot((Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--','linewidth',3);
+plot((Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--',(Traj(:,1)),Traj(:,5),'g','linewidth',3);
 set(gca,'fontsize', 16);
 title('Pseudo Random: Angular Velocity')
 xlabel('Time (s)');
 ylabel('rad/sec')
-legend('y', 'r');
+legend('Roll Rate', 'Measured Roll Rate', 'r');
 %no tau = no control 
 %contr
+
 figure
-plot((Traj(:,1)), Traj(:,4), 'b', 'linewidth',3);
+plot((Traj(:,1)),Traj(:,2),'b', 'linewidth',3);
+set(gca,'fontsize', 16);
+title('Pseudo Random: Angle')
+xlabel('Time (s)');
+ylabel('rad')
+legend('Angle');
+
+figure
+plot((Traj(:,1)), Traj(:,6), 'b', time, tauChoice, 'r--','linewidth',3);
 set(gca,'fontsize', 16);
 title('Pseudo Random: Controls')
 xlabel('Time (s)');
