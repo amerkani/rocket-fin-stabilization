@@ -96,8 +96,7 @@ void loop() {
     servo.write(Up+90);
     break;
 
-    case 10:
-    analogWrite(10,1);    
+    case 10:  
     Up = 5;
     servo.write(Up+90);
     break;
