@@ -12,7 +12,7 @@ area = .0001;              % wing cross-sectional area
 d_l = 0.15;             % distance from roll axis to aerodynamic center
 
 angle_noise = 0.003;
-rate_noise = .06;
+rate_noise = .08 * pi / 180; % rad/s noise
 
 v = 70;                 % Air Speed (m/s)
 
@@ -27,7 +27,7 @@ B = [
 C = [1 0; 0 1];
 D = 0;
 
-q1 = 200; 
+q1 = 30; 
 r1 = 1;
 
 Q = C'*q1*C;
@@ -46,11 +46,11 @@ plot(T, X(:,2))
 
 %% Discrete Time Updates
 
-dT = .004;           % Sample rate (control loop time)
+dT = .01;           % Sample rate (control loop time)
 totalT = 8; %secs
 stepsPerdt = 10;
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT)
-rate = 135; % deg/s (servo)
+rate = 200; % deg/s (servo)
 
 
 tauVecLength = totalT / dT * (stepsPerdt + 1);
@@ -74,7 +74,7 @@ tau = reshape(tauChoice, [(stepsPerdt +1), totalT/dT]);
 
 u=0;
 uf=0;
-xp = [0; 0]; xc = [0;0]; r = 0;
+xp = [0; 4]; xc = [0;0]; r = 0;
 ti = 0; tf = ti + dT; Traj = [];
 x_true = xp;
 for k=1:1:totalT/dT
@@ -111,7 +111,9 @@ for k=1:1:totalT/dT
     pertPath = u_path + tau(:,k);
     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),pertPath,timespan,x_true);
 %     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
-    xp = Xout(end,:)' + [angle_noise*randn; rate_noise*randn];
+    rate_error = rate_noise*randn* 20;
+    angle_error = dT*rate_error;
+    xp = Xout(end,:)' + [angle_error; rate_error];
     Traj = [Traj; Tout(:), Xout, xp'.*ones(size(Xout)), u_path];
     
     uf = u_path(end);
@@ -127,9 +129,9 @@ set(gca,'fontsize', 16);
 xlabel('Time (s)');
 ylabel('rad/sec')
 legend('Measured Roll Rate', 'True Roll Rate', 'Reference');
-
-set(gcf, 'Position', get(0, 'Screensize').*0.4 + [400 300 200 100]); 
-saveas(gcf, '/Users/shantamerkanian/Desktop/School/W23/AE 405/Final Report/simulated_tauPseudoRand.png')
+% 
+% set(gcf, 'Position', get(0, 'Screensize').*0.4 + [400 300 200 100]); 
+% saveas(gcf, '/Users/shantamerkanian/Desktop/School/W23/AE 405/Final Report/simulated_tauPseudoRand.png')
 
 figure
 plot((Traj(:,1)),Traj(:,2),'b', 'linewidth',3);
