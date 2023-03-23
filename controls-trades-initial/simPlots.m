@@ -1,15 +1,11 @@
 close all
 warning('off','all')
-%% Trial 2 - basic
+%% Continuous Time
 
 clear
 
 Ix = .1;                 % rotational moment of inertia
-Iy = 1e6;                 % rotational moment of inertia
-Iz = 1e6;                 % rotational moment of inertia
-m = 10;                 % mass of the rocket in kg
 C_l_prime = .01;        % slope of cl vs alpha curve
-C_d_fit = [1.294e-4 1.0734e-5 6.972e-3];% quadratic fit coefficients for C_d vs alpha
 rho = 1.17;             % density in kg/m^3
 S = .007;               % wing area in m^2
 area = .0001;              % wing cross-sectional area
@@ -31,51 +27,38 @@ B = [
 C = [1 0; 0 1];
 D = 0;
 
-q1 = 200; % change this for parameters
+q1 = 200; 
 r1 = 1;
 
-Q = C'*q1*C
+Q = C'*q1*C;
 R = r1;
 
 
-% K = lqr(A, B, Q, R);
+K = lqr(A, B, Q, R);
 
-% sys1 = ss(A-B*K, B, C, D);
-% step(sys1)
+sys1 = ss(A-B*K, B, C, D);
+step(sys1)
 
 x0 = [0 20]';
-% [T,X] = ode45(@stabilize, 0:.001:4, x0);
+[T,X] = ode45(@stabilize, 0:.001:4, x0);
 
-% plot(T, X(:,2))
-
-% ideal continuous 
+plot(T, X(:,2))
 
 %% Discrete Time Updates
 
 dT = .004;           % Sample rate (control loop time)
-totalT = 20; %secs
+totalT = 8; %secs
 stepsPerdt = 10;
 [Kd, Sd, ed] = lqrd(A,B,Q,R, dT)
 rate = 135; % deg/s (servo)
 
-% Kalman
-% plant = ss(A,B,C,D,dT);
-% Qk = 0;
-% Rk = [
-%     angle_noise*10 0;
-%     0 rate_noise;
-% ];
-% Rk = rate_noise;
-% [kalmf,L,~,Mx,Z] = kalman(plant,Qk,Rk);
 
-
-%tau = ones(size(timespan))*4;
 tauVecLength = totalT / dT * (stepsPerdt + 1);
 time = linspace(0,totalT,tauVecLength);
 
 tauConst = 5*ones(tauVecLength,1) ;
-tauPeriodic = 5 * sin(time) + 1;
-seedPseudo = randi([2000,4000],1,30);
+tauPeriodic = 2.5 * sin(time) + 5;
+seedPseudo = randi([1000,2000],1,60);
 tauPseudoRand = [];
 for i = 1:1:length(seedPseudo)
     if mod(i,2) == 0
@@ -85,7 +68,7 @@ for i = 1:1:length(seedPseudo)
     end
 end
 
-tauChoice = tauPeriodic(1:tauVecLength);
+tauChoice = tauPseudoRand(1:tauVecLength);
     
 tau = reshape(tauChoice, [(stepsPerdt +1), totalT/dT]);
 
@@ -94,7 +77,6 @@ uf=0;
 xp = [0; 0]; xc = [0;0]; r = 0;
 ti = 0; tf = ti + dT; Traj = [];
 x_true = xp;
-% P = 1/s^2/(s+5); [A,B,C,D]=ssdata(P);
 for k=1:1:totalT/dT
 
     u0 = uf;
@@ -126,11 +108,7 @@ for k=1:1:totalT/dT
         end
     end
   
-    %u_path
-    %tau = 0;
-    % change tau -move periodically 
     pertPath = u_path + tau(:,k);
-    %u_path = u_path +1;
     [Yout, Tout, Xout]=lsim(ss(A,B,C,D),pertPath,timespan,x_true);
 %     [Tout, Xout] = ode45(@(t,x) stabilize_pert(t,x, u0, uf, timespan, dT, rate), timespan, xp);
     xp = Xout(end,:)' + [angle_noise*randn; rate_noise*randn];
@@ -144,14 +122,14 @@ for k=1:1:totalT/dT
 end
 %ang vel
 figure
-plot((Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--',(Traj(:,1)),Traj(:,5),'g','linewidth',3);
+plot((Traj(:,1)),Traj(:,5),'g', (Traj(:,1)),Traj(:,3),'b',flip(Traj(:,1)),r*ones(size(Traj(:,1))), 'r--','linewidth',2);
 set(gca,'fontsize', 16);
-title('Pseudo Random: Angular Velocity')
 xlabel('Time (s)');
 ylabel('rad/sec')
-legend('Roll Rate', 'Measured Roll Rate', 'r');
-%no tau = no control 
-%contr
+legend('Measured Roll Rate', 'True Roll Rate', 'Reference');
+
+set(gcf, 'Position', get(0, 'Screensize').*0.4 + [400 300 200 100]); 
+saveas(gcf, '/Users/shantamerkanian/Desktop/School/W23/AE 405/Final Report/simulated_tauPseudoRand.png')
 
 figure
 plot((Traj(:,1)),Traj(:,2),'b', 'linewidth',3);
@@ -169,4 +147,3 @@ xlabel('Time (s)');
 ylabel('deg')
 legend('u');
 
-%% Functions
