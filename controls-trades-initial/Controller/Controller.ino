@@ -3,26 +3,25 @@
 const int MPU = 0x68; // MPU6050 I2C address
 float ASens, GSens;
 float AccX, AccY, AccZ;
-float GyroX, GyroY, GyroZ, GyroOld, GyroSum;
+float GyroX, GyroY, GyroZ;
 float AccErrorX, AccErrorY, GyroErrorX, GyroErrorY, GyroErrorZ;
 float accAngleX, accAngleY, gyroAngleX, gyroAngleY, gyroAngleZ;
 float elapsedTime;
 long  previousTime;
-float K1, K2;
-float theta,u;
-int c = 0;
+float theta,Uc,Up;
+int Transmitter = 1;
 
 Servo servo1;
 Servo servo2;
 Servo servo3;
+Servo servo4;
 
 void setup() {
-  K1 = 1.000;
-  K2 = 1.597;
     
   servo1.attach(10);
   servo2.attach(11);
   servo3.attach(12);
+  servo4.attach(13);
 
   // Open serial communications and wait for port to open:
   Serial.begin(19200);
@@ -53,6 +52,89 @@ void setup() {
 }
 
 void loop() {
+
+  int RandT, start;
+  
+  Transmitter = analogRead(A0);
+  // === Set perturbation and control case from Transmitter value === //
+  switch (Transmitter) {
+
+    case 1:   // Constant Angle Perturbation with Control
+    Control();
+    Up = 10;
+    servo4.write(Up+90);
+    break;
+
+    case 10:  // Constant Angle Perturbation without Control 
+    Up = 10;
+    servo4.write(Up+90);
+    break;
+
+    case 2:   // Periodic Perturbation with Control
+    Control();
+    Up = (180/PI)*sin(millis()/1000);
+    servo4.write(Up+90);
+    break;
+
+    case 20:  // Periodic Perturbation without Control
+    Up = (180/PI)*sin(millis()/10000);
+    servo4.write(Up+90);
+    break;
+
+    case 3:   // PseudoRandom Perturbation with Control
+    Control();
+    if(Up == 10 && (millis()-start>RandT)){
+      Up = 0 ;
+      servo4.write(Up+90);
+      RandT = random(4000,6000);
+      start = millis();
+    }
+    if(Up == 0 && (millis()-start)>RandT){
+      Up = 10 ;
+      servo4.write(Up+90);
+      RandT = random(4000,6000);
+      start = millis();
+    }
+    break;
+
+    case 30:  // PseudoRandom Perturbation without Control
+    if(Up == 10 && (millis()-start)>RandT){
+      Up = 0 ;
+      servo4.write(Up+90);
+      RandT = random(2000,4000);
+      start = millis();
+    }
+    if(Up == 0 && (millis()-start)>RandT){
+      Up = 10 ;
+      servo4.write(Up+90);
+      RandT = random(2000,4000);
+      start = millis();
+    }
+    break;
+
+    case 4:   // No Perturbation with Control
+    Control();
+    Up = 0;
+    servo4.write(Up+90);
+    break;
+
+    default:  //No Perturbation without Control
+    Up = 0;
+    Uc = 0;
+    servo1.write(Uc+90);
+    servo2.write(Uc+90);
+    servo3.write(Uc+90);
+    servo4.write(Up+90);
+    break;
+  }
+  analogWrite(44,Uc);
+  analogWrite(45,Up);
+}
+
+void Control(){
+  float K1 = 1.000;
+  float K2 = 1.597;
+
   // === Read acceleromter data === //
   Wire.beginTransmission(MPU);
   Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
@@ -91,17 +173,15 @@ void loop() {
   theta = 0.96 * gyroAngleY + 0.04 * accAngleY;
 
  // === Calculate desired servo value ===//
-  u = -K1*theta-K2*(GyroY);
+  Uc = -K1*theta-K2*(GyroY);
 
-  analogWrite(44,u);
-  
-  if (abs(u) > 15) {
-    u = (abs(u)/u)*15;
+  if (abs(Uc) > 15) {
+    Uc = (abs(Uc)/Uc)*15;
   }
 
-  servo1.write(u+90);
-  servo2.write(u+90);
-  servo3.write(u+90);
+  servo1.write(Uc+90);
+  servo2.write(Uc+90);
+  servo3.write(Uc+90);
 
 }
 
@@ -109,6 +189,9 @@ void calculate_IMU_error() {
   // We can call this funtion in the setup section to calculate the accelerometer and gyro data error. From here we will get the error values used in the above equations printed on the Serial Monitor.
   // Note that we should place the IMU flat in order to get the proper values, so that we then can the correct values
   // Read accelerometer values 300 times
+  int c = 0;
+
+
   while (c < 300) {
     Wire.beginTransmission(MPU);
     Wire.write(0x3B);
