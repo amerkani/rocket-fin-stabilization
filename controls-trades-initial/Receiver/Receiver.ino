@@ -12,18 +12,8 @@ void setup()
     // Initialize ASK Object
     rf_driver.init();
     // Setup Serial Monitor
-    Serial.begin(9600);
+    Serial.begin(19200);
 
-  while(!(Transmit == 0)){
-    uint8_t Send;
-    uint8_t Receive = Send;
-    uint8_t Sendlen = sizeof(Send);
-    // Check if received packet is correct size
-    if (rf_driver.recv((uint8_t*)&Send, &Sendlen)&& Sendlen == sizeof(Send)){
-    Transmit = Receive;
-    Serial.println(Transmit);  
-    }
-  }
     
 }
  
@@ -37,7 +27,7 @@ void loop()
     if (rf_driver.recv((uint8_t*)&Send, &Sendlen)&& Sendlen == sizeof(Send))
     {
       // Message received with valid checksum
-      analogWrite(A2,Receive);         
-      analogWrite(A3,Receive);         
+      Serial.println(Receive);    
+      delay(2);   
     }    
 }

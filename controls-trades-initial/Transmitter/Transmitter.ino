@@ -37,7 +37,7 @@ void loop()
   while (Serial.available() > 0) {
     int inChar = Serial.read();
     if (isDigit(inChar)) {
-      // convert the incoming byte to a char and add it to the string:
+      // convert the incoming byte to a char and add \it to the string:
       inString += (char)inChar;
     }
     // if you get a newline, print the string, then the string's value:

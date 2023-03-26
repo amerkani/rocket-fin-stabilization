@@ -8,23 +8,26 @@ float AccErrorX, AccErrorY, GyroErrorX, GyroErrorY, GyroErrorZ;
 float accAngleX, accAngleY, gyroAngleX, gyroAngleY, gyroAngleZ;
 float elapsedTime;
 long  previousTime;
+int RandT, start,time;
 float theta,Uc,Up;
-int Transmitter = 1;
+int Transmitter;
 
 Servo servo1;
 Servo servo2;
 Servo servo3;
 Servo servo4;
 
-void setup() {
-    
+void setup() {    
   servo1.attach(10);
   servo2.attach(11);
   servo3.attach(12);
   servo4.attach(13);
 
   // Open serial communications and wait for port to open:
+  
   Serial.begin(19200);
+  Serial1.begin(19200);
+  //Serial2.begin(19200);
   Wire.begin();                      // Initialize comunication
   Wire.setWireTimeout(3000 /* us */, true /* reset_on_timeout */);
   Wire.beginTransmission(MPU);       // Start communication with MPU6050 // MPU=0x68
@@ -52,10 +55,13 @@ void setup() {
 }
 
 void loop() {
-
-  int RandT, start;
-  
-  Transmitter = analogRead(A0);
+if((millis()-time)>3000){
+  if (Serial1.available()>0){
+    Transmitter = Serial1.parseInt();
+    Serial.println(Transmitter);
+  }
+  time = millis();
+}
   // === Set perturbation and control case from Transmitter value === //
   switch (Transmitter) {
 
@@ -72,24 +78,26 @@ void loop() {
 
     case 2:   // Periodic Perturbation with Control
     Control();
-    Up = (180/PI)*sin(millis()/1000);
+    Up = 30*sin(millis()/1000);
     servo4.write(Up+90);
+    Serial.println(Uc);
     break;
 
     case 20:  // Periodic Perturbation without Control
-    Up = (180/PI)*sin(millis()/10000);
+    Up = 30*sin(millis()/1000);
     servo4.write(Up+90);
+    Serial.println(Up);
     break;
 
     case 3:   // PseudoRandom Perturbation with Control
     Control();
-    if(Up == 10 && (millis()-start>RandT)){
+    if(Up == 10 && ((millis()-start)>RandT)){
       Up = 0 ;
       servo4.write(Up+90);
       RandT = random(4000,6000);
       start = millis();
     }
-    if(Up == 0 && (millis()-start)>RandT){
+    if(Up == 0 && ((millis()-start))>RandT){
       Up = 10 ;
       servo4.write(Up+90);
       RandT = random(4000,6000);
@@ -127,8 +135,9 @@ void loop() {
     servo4.write(Up+90);
     break;
   }
-  analogWrite(44,Uc);
-  analogWrite(45,Up);
+  //Serial.println(Transmitter);
+  //analogWrite(44,Uc);
+  //analogWrite(45,Up);
 }
 
 void Control(){
