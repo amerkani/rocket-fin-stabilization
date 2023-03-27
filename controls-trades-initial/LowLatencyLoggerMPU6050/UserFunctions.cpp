@@ -7,12 +7,12 @@
 MPU6050 mpu;
 static uint32_t startMicros;
 // Acquire a data record.
-void acquireData(data_t* data) {
+void acquireData(data_t* data, int Utot) {
   data->time = micros();
   mpu.getMotion6(&data->ax, &data->ay, &data->az,
                  &data->gx, &data->gy, &data->gz);
-  data->uc = analogRead(A1);    //Controller Fins Servo Position
-  data->up = analogRead(A2);    //Perturbation Fin Servo Position
+  data->uc = ((Utot / 1000U) % 10)*10+((Utot / 100U) % 10);    //Controller Fins Servo Position
+  data->up = ((Utot / 10U) % 10)*10+((Utot / 1U) % 10);    //Perturbation Fin Servo Position
 }
 
 // setup AVR I2C

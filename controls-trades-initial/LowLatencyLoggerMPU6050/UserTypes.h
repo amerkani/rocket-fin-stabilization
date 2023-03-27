@@ -13,7 +13,7 @@ struct data_t {
   int16_t uc;
   int16_t up;
 };
-void acquireData(data_t* data);
+void acquireData(data_t* data, int Utot);
 void printData(Print* pr, data_t* data);
 void printHeader(Print* pr);
 void userSetup();

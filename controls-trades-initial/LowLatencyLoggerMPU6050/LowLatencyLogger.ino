@@ -42,7 +42,7 @@ const uint32_t LOG_INTERVAL_USEC = 2000;
 // Pin definitions.
 //
 // SD chip select pin.
-const uint8_t SD_CS_PIN = SS;
+const uint8_t SD_CS_PIN = 4;
 //
 // Digital pin to indicate an error, set to -1 if not used.
 // The led blinks for fatal errors. The led goes on solid for
@@ -119,6 +119,8 @@ struct block_t {
   data_t data[DATA_DIM];
   uint8_t fill[FILL_DIM];
 };
+
+int Utot;
 //==============================================================================
 // Error messages stored in flash.
 #define error(msg) {sd.errorPrint(&Serial, F(msg));fatalBlink();}
@@ -143,38 +145,37 @@ void checkOverrun() {
   uint32_t bn = 0;
 
   if (!binFile.isOpen()) {
-    Serial.println();
-    Serial.println(F("No current binary file"));
+
     return;
   }
   binFile.rewind();
-  Serial.println();
-  Serial.print(F("FreeStack: "));
-  Serial.println(FreeStack());
-  Serial.println(F("Checking overrun errors - type any character to stop"));
+  //Serial.println();
+  //Serial.print(F("FreeStack: "));
+  //Serial.println(FreeStack());
+  //Serial.println(F("Checking overrun errors - type any character to stop"));
   while (binFile.read(&block, 512) == 512) {
     if (block.count == 0) {
       break;
     }
     if (block.overrun) {
       if (!headerPrinted) {
-        Serial.println();
-        Serial.println(F("Overruns:"));
-        Serial.println(F("fileBlockNumber,sdBlockNumber,overrunCount"));
+        //Serial.println();
+        //Serial.println(F("Overruns:"));
+        //Serial.println(F("fileBlockNumber,sdBlockNumber,overrunCount"));
         headerPrinted = true;
       }
-      Serial.print(bn);
-      Serial.print(',');
-      Serial.print(binFile.firstBlock() + bn);
-      Serial.print(',');
-      Serial.println(block.overrun);
+      //Serial.print(bn);
+      //Serial.print(',');
+      //Serial.print(binFile.firstBlock() + bn);
+      //Serial.print(',');
+      //Serial.println(block.overrun);
     }
     bn++;
   }
   if (!headerPrinted) {
-    Serial.println(F("No errors found"));
+    //Serial.println(F("No errors found"));
   } else {
-    Serial.println(F("Done"));
+    //Serial.println(F("Done"));
   }
 }
 //-----------------------------------------------------------------------------
@@ -192,9 +193,9 @@ void binaryToCsv() {
     Serial.println(F("No current binary file"));
     return;
   }
-  Serial.println();
-  Serial.print(F("FreeStack: "));
-  Serial.println(FreeStack());
+  //Serial.println();
+  //Serial.print(F("FreeStack: "));
+  //Serial.println(FreeStack());
 
   // Create a new csvFile.
   strcpy(csvName, binName);
@@ -206,7 +207,7 @@ void binaryToCsv() {
   binFile.rewind();
   Serial.print(F("Writing: "));
   Serial.print(csvName);
-  Serial.println(F(" - type any character to stop"));
+  //Serial.println(F(" - type any character to stop"));
   printHeader(&csvFile);
   uint32_t tPct = millis();
   while (binFile.read(&block, 512) == 512) {
@@ -230,15 +231,15 @@ void binaryToCsv() {
       if (pct != lastPct) {
         tPct = millis();
         lastPct = pct;
-        Serial.print(pct, DEC);
-        Serial.println('%');
+        //Serial.print(pct, DEC);
+        //Serial.println('%');
       }
     }
   }
   csvFile.close();
   Serial.print(F("Done: "));
-  Serial.print(0.001*(millis() - t0));
-  Serial.println(F(" Seconds"));
+  //Serial.print(0.001*(millis() - t0));
+  //Serial.println(F(" Seconds"));
 }
 //-----------------------------------------------------------------------------
 void createBinFile() {
@@ -264,7 +265,7 @@ void createBinFile() {
     error("contiguousRange failed");
   }
   // Flash erase all data in the file.
-  Serial.println(F("Erasing all data"));
+  //Serial.println(F("Erasing all data"));
   uint32_t bgnErase = bgnBlock;
   uint32_t endErase;
   while (bgnErase < endBlock) {
@@ -283,13 +284,13 @@ void createBinFile() {
 void dumpData() {
   block_t block;
   if (!binFile.isOpen()) {
-    Serial.println();
-    Serial.println(F("No current binary file"));
+    //Serial.println();
+    //Serial.println(F("No current binary file"));
     return;
   }
   binFile.rewind();
-  Serial.println();
-  Serial.println(F("Type any character to stop"));
+  //Serial.println();
+  //Serial.println(F("Type any character to stop"));
   delay(1000);
   printHeader(&Serial);
   while (!Serial.available() && binFile.read(&block , 512) == 512) {
@@ -304,7 +305,7 @@ void dumpData() {
       printData(&Serial, &block.data[i]);
     }
   }
-  Serial.println(F("Done"));
+  //Serial.println(F("Done"));
 }
 //------------------------------------------------------------------------------
 // log data
@@ -317,8 +318,8 @@ void logData() {
 void openBinFile() {
   char name[FILE_NAME_DIM];
   strcpy(name, binName);
-  Serial.println(F("\nEnter two digit version"));
-  Serial.write(name, BASE_NAME_SIZE);
+  //Serial.println(F("\nEnter two digit version"));
+  //Serial.write(name, BASE_NAME_SIZE);
   for (int i = 0; i < 2; i++) {
     while (!Serial.available()) {
      yield();
@@ -342,7 +343,7 @@ void openBinFile() {
     Serial.println(F("open failed"));
     return;
   }
-  Serial.println(F("File opened"));
+  //Serial.println(F("File opened"));
 }
 //------------------------------------------------------------------------------
 void recordBinFile() {
@@ -390,11 +391,18 @@ void recordBinFile() {
   uint32_t logTime = micros();
   while(1) {
      // Time for next data record.
+
+    if (Serial.available()>0){
+      Utot = atoi(Serial.read());
+    }
+
     logTime += LOG_INTERVAL_USEC;
-    b = analogRead(A0);
-    if (c != b) {
+    //b = digitalRead(8);
+    // if (b = HIGH) {
+    //   closeFile = true;
+    // }
+    if (millis()>20000) {
       closeFile = true;
-      c = b;
     }
     if (closeFile) {
       if (curBlock != 0) {
@@ -427,14 +435,14 @@ void recordBinFile() {
           digitalWrite(ERROR_LED_PIN, HIGH);
         }
 #if ABORT_ON_OVERRUN
-        Serial.println(F("Overrun abort"));
+        //Serial.println(F("Overrun abort"));
         break;
  #endif  // ABORT_ON_OVERRUN
       } else {
 #if USE_SHARED_SPI
         sd.card()->spiStop();
 #endif  // USE_SHARED_SPI
-        acquireData(&curBlock->data[curBlock->count++]);
+        acquireData(&curBlock->data[curBlock->count++],Utot);
 #if USE_SHARED_SPI
         sd.card()->spiStart();
 #endif  // USE_SHARED_SPI
@@ -555,7 +563,7 @@ void testSensor() {
     do {
       diff = m - micros();
     } while (diff > 0);
-    acquireData(&data);
+    acquireData(&data, Utot);
     printData(&Serial, &data);
   }
 }
@@ -564,7 +572,7 @@ void setup(void) {
   if (ERROR_LED_PIN >= 0) {
     pinMode(ERROR_LED_PIN, OUTPUT);
   }
-  Serial.begin(9600);
+  Serial.begin(4800);
 
   // Wait for USB Serial
   while (!Serial) {
@@ -581,8 +589,11 @@ void setup(void) {
   pinMode(SD_CS_PIN, OUTPUT);
   digitalWrite(SD_CS_PIN, HIGH);
 
+  pinMode(8,INPUT);
+
   // Setup sensors.
   userSetup();
+  Serial.println("Past User Setup");
 
   // Initialize at the highest speed supported by the board that is
   // not over 50 MHz. Try a lower speed if SPI errors occur.
@@ -603,7 +614,7 @@ void setup(void) {
     }
   }
 
-  c = analogRead(A0);
+  c = digitalRead(8);
 }
 //------------------------------------------------------------------------------
 void loop(void) {
@@ -613,21 +624,25 @@ void loop(void) {
   while (true) {}
 #endif
 
-
-  // Discard extra Serial data.
-  do {
-    delay(10);
-    b = analogRead(A0);
-  } while (c == b);
-  c = b;
+  // do {
+  //   delay(10);
+  //   b = digitalRead(8);
+  // } while (c == b);
+  // c = b;
   
-  if (ERROR_LED_PIN >= 0) {
-    digitalWrite(ERROR_LED_PIN, LOW);
-  }
+  // if (ERROR_LED_PIN >= 0) {
+  //   digitalWrite(ERROR_LED_PIN, LOW);
+  // }
 
-  if (c == 123) {
-    binaryToCsv();
-  } else{
-    logData();
-  }
+  // if (c == HIGH) {
+  //   binaryToCsv();
+  // } else{
+  //   logData();
+  // }
+
+while(millis()<20000){
+  logData();
+}
+binaryToCsv();
+
 }
