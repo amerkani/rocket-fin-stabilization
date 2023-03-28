@@ -397,11 +397,8 @@ void recordBinFile() {
     }
 
     logTime += LOG_INTERVAL_USEC;
-    //b = digitalRead(8);
-    // if (b = HIGH) {
-    //   closeFile = true;
-    // }
-    if (millis()>20000) {
+
+    if (millis() > (30*60000)) {
       closeFile = true;
     }
     if (closeFile) {
@@ -589,7 +586,6 @@ void setup(void) {
   pinMode(SD_CS_PIN, OUTPUT);
   digitalWrite(SD_CS_PIN, HIGH);
 
-  pinMode(8,INPUT);
 
   // Setup sensors.
   userSetup();
@@ -614,7 +610,6 @@ void setup(void) {
     }
   }
 
-  c = digitalRead(8);
 }
 //------------------------------------------------------------------------------
 void loop(void) {
@@ -624,23 +619,8 @@ void loop(void) {
   while (true) {}
 #endif
 
-  // do {
-  //   delay(10);
-  //   b = digitalRead(8);
-  // } while (c == b);
-  // c = b;
-  
-  // if (ERROR_LED_PIN >= 0) {
-  //   digitalWrite(ERROR_LED_PIN, LOW);
-  // }
 
-  // if (c == HIGH) {
-  //   binaryToCsv();
-  // } else{
-  //   logData();
-  // }
-
-while(millis()<20000){
+while(millis() < (30*60000)){
   logData();
 }
 binaryToCsv();
